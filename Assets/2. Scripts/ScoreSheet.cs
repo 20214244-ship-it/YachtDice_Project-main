@@ -7,87 +7,135 @@ public class ScoreSheet : MonoBehaviour
 {
     public static ScoreSheet Instance;
 
-    [Header("Row 프리팹 (Row_Ones 프리팹 연결)")]
-    public GameObject rowPrefab;
+    [Header("ScorePanel 연결 (필수)")]
+    public RectTransform scorePanel;
 
-    [Header("ScorePanel (Vertical Layout Group 있는 패널)")]
-    public Transform scorePanel;
+    [Header("한글 폰트 연결 (필수)")]
+    public TMP_FontAsset koreanFont;
 
-    [Header("합계 텍스트 (나중에 연결)")]
+    [Header("합계 텍스트 (선택)")]
     public TMP_Text totalText;
 
-    // 내부 데이터
     private class ScoreEntry
     {
-        public Category  category;
-        public TMP_Text  nameText;
-        public TMP_Text  scoreText;
-        public Button    button;
-        public bool      isLocked    = false;
-        public int       lockedScore = 0;
+        public Category category;
+        public TMP_Text nameText;
+        public TMP_Text scoreText;
+        public Button   button;
+        public Image    background;
+        public bool     isLocked    = false;
+        public int      lockedScore = 0;
     }
 
     private List<ScoreEntry> entries = new List<ScoreEntry>();
 
-    private readonly Color colorPreview = new Color(0.55f, 0.9f, 0.55f);
-    private readonly Color colorLocked  = Color.white;
-    private readonly Color colorEmpty   = new Color(0.7f, 0.7f, 0.7f);
+    private Color bgNormal     = new Color(0.95f, 0.93f, 0.88f, 1f);
+    private Color bgAlt        = new Color(0.90f, 0.88f, 0.83f, 1f);
+    private Color bgLocked     = new Color(0.75f, 0.85f, 0.75f, 1f);
+    private Color textNormal   = new Color(0.2f,  0.2f,  0.2f,  1f);
+    private Color scorePreview = new Color(0.1f,  0.6f,  0.1f,  1f);
+    private Color scoreLocked  = new Color(0.1f,  0.1f,  0.5f,  1f);
 
     private const int BonusThreshold = 63;
     private const int BonusScore     = 35;
+    private float rowHeight = 38f;
 
-    // ───────────────────────────────────────────────────────────
-    void Awake()
-    {
-        Instance = this;
-        BuildScoreSheet();
-    }
+    void Awake() => Instance = this;
+    void Start()  => BuildScoreSheet();
 
     private void BuildScoreSheet()
     {
-        if (rowPrefab == null || scorePanel == null)
+        if (scorePanel == null) { Debug.LogError("[ScoreSheet] scorePanel 미연결!"); return; }
+
+        foreach (Transform child in scorePanel) Destroy(child.gameObject);
+        entries.Clear();
+
+        var cats = (Category[])System.Enum.GetValues(typeof(Category));
+        scorePanel.sizeDelta = new Vector2(scorePanel.sizeDelta.x, rowHeight * cats.Length);
+
+        for (int i = 0; i < cats.Length; i++)
         {
-            Debug.LogError("[ScoreSheet] rowPrefab 또는 scorePanel 이 연결되지 않았습니다!");
-            return;
-        }
+            Category cat = cats[i];
+            float yPos = -(i * rowHeight) - rowHeight * 0.5f;
 
-        foreach (Category cat in System.Enum.GetValues(typeof(Category)))
-        {
-            // 프리팹 복사
-            GameObject row = Instantiate(rowPrefab, scorePanel);
+            // Row 배경
+            GameObject rowObj = new GameObject("Row_" + cat, typeof(RectTransform), typeof(Image));
+            rowObj.transform.SetParent(scorePanel, false);
+            RectTransform rowRT = rowObj.GetComponent<RectTransform>();
+            rowRT.anchorMin        = new Vector2(0, 1);
+            rowRT.anchorMax        = new Vector2(1, 1);
+            rowRT.pivot            = new Vector2(0.5f, 0.5f);
+            rowRT.sizeDelta        = new Vector2(0, rowHeight - 2f);
+            rowRT.anchoredPosition = new Vector2(0, yPos);
 
-            // 이름 텍스트
-            TMP_Text nameText  = row.transform.Find("NameText")?.GetComponent<TMP_Text>();
-            TMP_Text scoreText = row.transform.Find("ScoreText")?.GetComponent<TMP_Text>();
-            Button   btn       = row.transform.Find("SelectButton")?.GetComponent<Button>();
+            Image rowBg  = rowObj.GetComponent<Image>();
+            rowBg.color  = i % 2 == 0 ? bgNormal : bgAlt;
 
-            if (nameText  != null) nameText.text  = ScoreCalculator.GetName(cat);
-            if (scoreText != null)
-            {
-                scoreText.text  = "";
-                scoreText.color = colorEmpty;
-            }
-            if (btn != null)
-            {
-                btn.interactable = false;
-                var c = cat; // 람다 캡처
-                btn.onClick.AddListener(() => OnRowClicked(c));
-            }
+            // 족보 이름
+            TMP_Text nameText = MakeText(rowObj.transform, "NameText",
+                ScoreCalculator.GetName(cat), 13, HorizontalAlignmentOptions.Left);
+            RectTransform nameRT = nameText.rectTransform;
+            nameRT.anchorMin = new Vector2(0f,    0f);
+            nameRT.anchorMax = new Vector2(0.62f, 1f);
+            nameRT.offsetMin = new Vector2(10f, 0f);
+            nameRT.offsetMax = new Vector2(0f,  0f);
+
+            // 점수
+            TMP_Text scoreText = MakeText(rowObj.transform, "ScoreText",
+                "", 13, HorizontalAlignmentOptions.Center);
+            RectTransform scoreRT = scoreText.rectTransform;
+            scoreRT.anchorMin = new Vector2(0.62f, 0f);
+            scoreRT.anchorMax = new Vector2(1f,    1f);
+            scoreRT.offsetMin = new Vector2(0f,  0f);
+            scoreRT.offsetMax = new Vector2(-5f, 0f);
+
+            // 투명 버튼
+            GameObject btnObj = new GameObject("Btn",
+                typeof(RectTransform), typeof(Image), typeof(Button));
+            btnObj.transform.SetParent(rowObj.transform, false);
+            RectTransform btnRT = btnObj.GetComponent<RectTransform>();
+            btnRT.anchorMin = Vector2.zero;
+            btnRT.anchorMax = Vector2.one;
+            btnRT.offsetMin = Vector2.zero;
+            btnRT.offsetMax = Vector2.zero;
+            btnObj.GetComponent<Image>().color = Color.clear;
+
+            Button btn = btnObj.GetComponent<Button>();
+            btn.interactable = false;
+            ColorBlock cb = btn.colors;
+            cb.normalColor      = Color.clear;
+            cb.highlightedColor = new Color(0.4f, 0.9f, 0.4f, 0.25f);
+            cb.pressedColor     = new Color(0.2f, 0.7f, 0.2f, 0.40f);
+            btn.colors = cb;
+            var c = cat;
+            btn.onClick.AddListener(() => OnRowClicked(c));
 
             entries.Add(new ScoreEntry
             {
-                category  = cat,
-                nameText  = nameText,
-                scoreText = scoreText,
-                button    = btn
+                category   = cat,
+                nameText   = nameText,
+                scoreText  = scoreText,
+                button     = btn,
+                background = rowBg
             });
         }
-
-        // 원본 프리팹 인스턴스 제거 (Hierarchy에 남아있는 Row_Ones)
-        // → 프리팹으로 만들었으면 씬에서 Row_Ones 삭제해도 됨
     }
 
-    // ── 미리보기 ───────────────────────────────────────────────
+    private TMP_Text MakeText(Transform parent, string name, string text,
+                               float size, HorizontalAlignmentOptions hAlign)
+    {
+        var obj = new GameObject(name, typeof(RectTransform));
+        obj.transform.SetParent(parent, false);
+        var tmp = obj.AddComponent<TextMeshProUGUI>();
+        tmp.text                = text;
+        tmp.fontSize            = size;
+        tmp.horizontalAlignment = hAlign;
+        tmp.verticalAlignment   = VerticalAlignmentOptions.Middle;
+        tmp.color               = textNormal;
+        if (koreanFont != null) tmp.font = koreanFont;
+        return tmp;
+    }
+
     public void ShowPreviews(int[] dice)
     {
         foreach (var e in entries)
@@ -96,11 +144,10 @@ public class ScoreSheet : MonoBehaviour
             int score = ScoreCalculator.Calculate(e.category, dice);
             if (e.scoreText != null)
             {
-                e.scoreText.text  = score.ToString();
-                e.scoreText.color = colorPreview;
+                e.scoreText.text  = score > 0 ? score.ToString() : "-";
+                e.scoreText.color = scorePreview;
             }
-            if (e.button != null)
-                e.button.interactable = true;
+            if (e.button != null) e.button.interactable = true;
         }
     }
 
@@ -109,13 +156,8 @@ public class ScoreSheet : MonoBehaviour
         foreach (var e in entries)
         {
             if (e.isLocked) continue;
-            if (e.scoreText != null)
-            {
-                e.scoreText.text  = "";
-                e.scoreText.color = colorEmpty;
-            }
-            if (e.button != null)
-                e.button.interactable = false;
+            if (e.scoreText != null) { e.scoreText.text = ""; e.scoreText.color = textNormal; }
+            if (e.button    != null) e.button.interactable = false;
         }
     }
 
@@ -126,25 +168,17 @@ public class ScoreSheet : MonoBehaviour
                 e.button.interactable = on;
     }
 
-    // ── 족보 선택 확정 ─────────────────────────────────────────
     private void OnRowClicked(Category cat)
     {
         foreach (var e in entries)
         {
             if (e.category != cat || e.isLocked) continue;
-
-            int[] dice      = GameManager.Instance.GetDiceValues();
-            e.lockedScore   = ScoreCalculator.Calculate(cat, dice);
-            e.isLocked      = true;
-
-            if (e.scoreText != null)
-            {
-                e.scoreText.text  = e.lockedScore.ToString();
-                e.scoreText.color = colorLocked;
-            }
-            if (e.button != null)
-                e.button.interactable = false;
-
+            int[] dice    = GameManager.Instance.GetDiceValues();
+            e.lockedScore = ScoreCalculator.Calculate(cat, dice);
+            e.isLocked    = true;
+            if (e.scoreText  != null) { e.scoreText.text = e.lockedScore.ToString(); e.scoreText.color = scoreLocked; }
+            if (e.background != null) e.background.color = bgLocked;
+            if (e.button     != null) e.button.interactable = false;
             EnableSelection(false);
             UpdateTotal();
             GameManager.Instance.OnCategorySelected();
@@ -152,7 +186,6 @@ public class ScoreSheet : MonoBehaviour
         }
     }
 
-    // ── 합계 ───────────────────────────────────────────────────
     private void UpdateTotal()
     {
         int upper = 0, lower = 0;
@@ -163,8 +196,7 @@ public class ScoreSheet : MonoBehaviour
             else                              lower += e.lockedScore;
         }
         int bonus = upper >= BonusThreshold ? BonusScore : 0;
-        if (totalText != null)
-            totalText.text = $"합계: {upper + lower + bonus}";
+        if (totalText != null) totalText.text = $"합계: {upper + lower + bonus}";
     }
 
     public int GetTotal()
@@ -176,14 +208,12 @@ public class ScoreSheet : MonoBehaviour
             if (e.category <= Category.Sixes) upper += e.lockedScore;
             else                              lower += e.lockedScore;
         }
-        int bonus = upper >= BonusThreshold ? BonusScore : 0;
-        return upper + lower + bonus;
+        return upper + lower + (upper >= BonusThreshold ? BonusScore : 0);
     }
 
     public bool AllLocked()
     {
-        foreach (var e in entries)
-            if (!e.isLocked) return false;
+        foreach (var e in entries) if (!e.isLocked) return false;
         return true;
     }
 }
