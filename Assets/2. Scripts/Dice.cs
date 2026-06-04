@@ -20,14 +20,14 @@ public class Dice : MonoBehaviour
     private Vector3   startPosition;
 
     private static readonly (Vector3 dir, int val)[] FaceMap =
-    {
-        (Vector3.up,      1),
-        (Vector3.down,    6),
-        (Vector3.forward, 2),
-        (Vector3.back,    5),
-        (Vector3.right,   3),
-        (Vector3.left,    4),
-    };
+{
+    (Vector3.up,      2),
+    (Vector3.down,    5),
+    (Vector3.forward, 1),
+    (Vector3.back,    6),
+    (Vector3.right,   4),
+    (Vector3.left,    3),
+};
 
     void Awake()
     {
@@ -97,8 +97,7 @@ public class Dice : MonoBehaviour
     private void ToggleKept()
     {
         IsKept = !IsKept;
-        StopAllCoroutines();
-        IsRolling = false;
+     
 
         // ★ isKinematic true 먼저 → 그 다음 위치 이동
         rb.isKinematic = true;
@@ -106,13 +105,13 @@ public class Dice : MonoBehaviour
         if (IsKept)
         {
             transform.position = startPosition + keptOffset;
-            transform.rotation = Quaternion.identity;
+            
             SetColor(keptColor);
         }
         else
         {
             transform.position = startPosition + Vector3.up * 0.5f;
-            transform.rotation = Quaternion.identity;
+            
             SetColor(normalColor);
         }
     }
@@ -148,11 +147,12 @@ public class Dice : MonoBehaviour
     private int ReadTopFace()
     {
         float maxDot = -Mathf.Infinity;
-        int   result = 1;
+        Vector3 topDir = Vector3.up;
+        int result = 1;
         foreach (var (dir, val) in FaceMap)
         {
             float dot = Vector3.Dot(transform.TransformDirection(dir), Vector3.up);
-            if (dot > maxDot) { maxDot = dot; result = val; }
+            if (dot > maxDot) { maxDot = dot; result = val; topDir = dir; }
         }
         return result;
     }

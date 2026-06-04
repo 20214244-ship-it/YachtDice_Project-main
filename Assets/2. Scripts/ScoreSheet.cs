@@ -32,13 +32,13 @@ public class ScoreSheet : MonoBehaviour
     private Color bgNormal     = new Color(0.95f, 0.93f, 0.88f, 1f);
     private Color bgAlt        = new Color(0.90f, 0.88f, 0.83f, 1f);
     private Color bgLocked     = new Color(0.75f, 0.85f, 0.75f, 1f);
-    private Color textNormal   = new Color(0.2f,  0.2f,  0.2f,  1f);
-    private Color scorePreview = new Color(0.1f,  0.6f,  0.1f,  1f);
-    private Color scoreLocked  = new Color(0.1f,  0.1f,  0.5f,  1f);
+    private Color textNormal   = new Color(0f,    0f,    0f,    1f);
+    private Color scorePreview = new Color(0f,    0.5f,  0f,    1f);
+    private Color scoreLocked  = new Color(0f,    0.35f, 0f,    1f);
 
     private const int BonusThreshold = 63;
     private const int BonusScore     = 35;
-    private float rowHeight = 38f;
+    private float rowHeight = 52f;
 
     void Awake() => Instance = this;
     void Start()  => BuildScoreSheet();
@@ -73,7 +73,7 @@ public class ScoreSheet : MonoBehaviour
 
             // 족보 이름
             TMP_Text nameText = MakeText(rowObj.transform, "NameText",
-                ScoreCalculator.GetName(cat), 13, HorizontalAlignmentOptions.Left);
+                ScoreCalculator.GetName(cat), 17, HorizontalAlignmentOptions.Left);
             RectTransform nameRT = nameText.rectTransform;
             nameRT.anchorMin = new Vector2(0f,    0f);
             nameRT.anchorMax = new Vector2(0.62f, 1f);
@@ -82,7 +82,7 @@ public class ScoreSheet : MonoBehaviour
 
             // 점수
             TMP_Text scoreText = MakeText(rowObj.transform, "ScoreText",
-                "", 13, HorizontalAlignmentOptions.Center);
+                "", 17, HorizontalAlignmentOptions.Center);
             RectTransform scoreRT = scoreText.rectTransform;
             scoreRT.anchorMin = new Vector2(0.62f, 0f);
             scoreRT.anchorMax = new Vector2(1f,    1f);
@@ -129,6 +129,7 @@ public class ScoreSheet : MonoBehaviour
         var tmp = obj.AddComponent<TextMeshProUGUI>();
         tmp.text                = text;
         tmp.fontSize            = size;
+        tmp.fontStyle           = name == "NameText" ? FontStyles.Bold : FontStyles.Bold;
         tmp.horizontalAlignment = hAlign;
         tmp.verticalAlignment   = VerticalAlignmentOptions.Middle;
         tmp.color               = textNormal;

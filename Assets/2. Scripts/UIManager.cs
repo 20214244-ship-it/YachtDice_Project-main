@@ -42,6 +42,8 @@ public class UIManager : MonoBehaviour
         {
             if (rollsLeft <= 0)
                 rollButtonText.text = "족보를 선택하세요";
+            else if (rollsLeft == 3)
+                rollButtonText.text = "굴리기";
             else
                 rollButtonText.text = $"다시 굴리기 ({3 - rollsLeft}/3)";
         }

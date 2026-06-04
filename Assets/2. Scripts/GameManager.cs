@@ -22,8 +22,8 @@ public class GameManager : MonoBehaviour
     void Start()
     {
         // Instance 방식 대신 직접 참조로 null 방지
-        if (uiManager  == null) uiManager  = FindObjectOfType<UIManager>();
-        if (scoreSheet == null) scoreSheet = FindObjectOfType<ScoreSheet>();
+        if (uiManager  == null) uiManager  = FindFirstObjectByType<UIManager>();
+        if (scoreSheet == null) scoreSheet = FindFirstObjectByType<ScoreSheet>();
 
         StartNewTurn();
     }
@@ -68,6 +68,8 @@ public class GameManager : MonoBehaviour
     {
         yield return new WaitForSeconds(0.5f);
         while (IsRolling) yield return null;
+
+        if (uiManager != null) uiManager.UpdateRollButton(RollsLeft, false);
 
         int[] values = GetDiceValues();
 
