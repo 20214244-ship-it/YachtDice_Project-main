@@ -2,6 +2,7 @@ using UnityEngine;
 using UnityEngine.UI;
 using TMPro;
 using System.Collections.Generic;
+[ExecuteAlways]
 
 public class ScoreSheet : MonoBehaviour
 {
@@ -40,14 +41,25 @@ public class ScoreSheet : MonoBehaviour
     private const int BonusScore     = 35;
     private float rowHeight = 52f;
 
-    void Awake() => Instance = this;
-    void Start()  => BuildScoreSheet();
+    void Awake()
+    {
+        Instance = this;
+        BuildScoreSheet();
+    }
+
+    void Start() { }
 
     private void BuildScoreSheet()
     {
         if (scorePanel == null) { Debug.LogError("[ScoreSheet] scorePanel 미연결!"); return; }
 
-        foreach (Transform child in scorePanel) Destroy(child.gameObject);
+        foreach (Transform child in scorePanel)
+        {
+            if (Application.isPlaying)
+                Destroy(child.gameObject);
+            else
+                DestroyImmediate(child.gameObject);
+        }
         entries.Clear();
 
         var cats = (Category[])System.Enum.GetValues(typeof(Category));

@@ -24,6 +24,8 @@ public class UIManager : MonoBehaviour
     {
         if (gameOverPanel != null) gameOverPanel.SetActive(false);
         if (restartButton != null) restartButton.onClick.AddListener(RestartGame);
+        // 시작 전부터 버튼 텍스트 표시
+        if (rollButtonText != null) rollButtonText.text = "굴리기";
     }
 
     // ── 굴리기 버튼 ────────────────────────────────────────────
