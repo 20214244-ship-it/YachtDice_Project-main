@@ -90,7 +90,6 @@ public class Dice : MonoBehaviour
 
         SnapToSlot();
         Value     = ReadTopFace();
-        Debug.Log(gameObject.name + " : " + Value);
         IsRolling = false;
     }
 
